@@ -8,7 +8,10 @@
                 :alist-plist)
   (:import-from :let-over-lambda
                 :defmacro!
-                :mkstr)
+                :mkstr
+                :flatten)
+  (:import-from :alexandria
+                :make-keyword)
   (:export
    ;; all html5 elements, e.g. div, nav, media, export in code
    ;; except <time> and <map> conflicts with cl symbol, are defined and exported as |time|, |map|
@@ -20,29 +23,29 @@
 
 (defstruct attrs alist)
 
-(defun split-attrs-and-chilren (attrs-and-children)
+(defun split-attrs-and-children (attrs-and-children)
   (cond
     ((attrs-p (first attrs-and-children))
-     (values (first attrs-and-children) (rest attrs-and-children)))
+     (values (first attrs-and-children) (flatten (rest attrs-and-children))))
     ((alistp (first attrs-and-children))
      (values (make-attrs :alist (first attrs-and-children))
-             (rest attrs-and-children)))
+             (flatten (rest attrs-and-children))))
     ((listp (first attrs-and-children))
      (values (make-attrs :alist (plist-alist (first attrs-and-children)))
-             (rest attrs-and-children)))
+             (flatten (rest attrs-and-children))))
     ((hash-table-p (first attrs-and-children))
      (values (make-attrs :alist (hash-alist (first attrs-and-children)))
-             (rest attrs-and-children)))
+             (flatten (rest attrs-and-children))))
     ((keywordp (first attrs-and-children))
      (loop for thing on attrs-and-children by #'cddr
         for (k v) = thing
-        when (keywordp k)
+        when (and (keywordp k) v)
           collect (cons k v) into attrs
         when (not (keywordp k))
-          return (values (make-attrs :alist attrs) thing)
+          return (values (make-attrs :alist attrs) (flatten thing))
         finally (return (values (make-attrs :alist attrs) nil))))
     (t
-     (values (make-attrs :alist nil) attrs-and-children))))
+     (values (make-attrs :alist nil) (flatten attrs-and-children)))))
 
 (defun plist-alist (plist)
   (loop for (k v) on plist by #'cddr
@@ -56,8 +59,10 @@
 
 (defmacro define-builtin-element (element-name)
   `(defun ,element-name (&rest attrs-and-children)
-     (multiple-value-bind (attrs children) (split-attrs-and-chilren attrs-and-children)
-       (make-element :tag (string-downcase (mkstr ',element-name)) :attrs attrs :children children))))
+     (multiple-value-bind (attrs children)
+         (split-attrs-and-children attrs-and-children)
+       (make-element :tag (string-downcase (mkstr ',element-name))
+                     :attrs attrs :children children))))
 
 (defmacro define-and-export-builtin-elements (&rest element-names)
   `(progn
@@ -66,7 +71,7 @@
                        `(export ',e)))
                element-names)))
 
-(define-builtin-elements
+(define-and-export-builtin-elements
     a abbr address area article aside audio b base bdi bdo blockquote
     body br button canvas caption cite code col colgroup data datalist
     dd del details dfn dialog div dl dt em embed fieldset figcaption
@@ -99,5 +104,11 @@
               (element-tag element))
       (format stream "<~a~a>" (element-tag element) (element-attrs element))))
 
-;; (defmacro! define-element (name (&rest args) &body body)
-;;   `(defun ,name (&rest g!attrs-and-children)))
+(defmacro! define-element (name (&rest args) &body body)
+  `(defun ,name (&rest ,g!attrs-and-children)
+     (multiple-value-bind (,g!attrs children)
+         (split-attrs-and-children ,g!attrs-and-children)
+       (let ,(mapcar (lambda (arg)
+                       (list arg `(cdr (assoc (make-keyword ',arg) (attrs-alist ,g!attrs)))))
+                     args)
+         ,@body))))
