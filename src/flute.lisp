@@ -19,7 +19,29 @@
    ))
 (in-package :flute)
 
-(defstruct element tag attrs children)
+(defclass element ()
+  ((tag :initarg :tag
+        :accessor element-tag)
+   (attrs :initarg :attrs
+          :accessor element-attrs)
+   (children :initarg :children
+             :accessor element-children)))
+
+(defclass builtin-element (element) ())
+
+(defclass builtin-element-with-prefix (builtin-element)
+  ((prefix :initarg :prefix
+           :accessor element-prefix)))
+
+(defclass user-element (element)
+  ((expand-to :initarg :expand-to
+              :accessor user-element-expand-to)))
+
+(defun make-builtin-element (&rest args &key tag attrs children)
+  (apply #'make-instance 'builtin-element args))
+
+(defun make-builtin-element-with-prefix (&rest args &key tag attrs children prefix)
+  (apply #'make-instance 'builtin-element-with-prefix args))
 
 (defstruct attrs alist)
 
@@ -57,12 +79,19 @@
                   (cdr kv)))
           alist))
 
+(defun html (&rest attrs-and-children)
+  (multiple-value-bind (attrs children)
+      (split-attrs-and-children attrs-and-children)
+    (make-builtin-element-with-prefix :tag "html" :attrs attrs
+                                      :children children
+                                      :prefix "<!DOCTYPE html>")))
+
 (defmacro define-builtin-element (element-name)
   `(defun ,element-name (&rest attrs-and-children)
      (multiple-value-bind (attrs children)
          (split-attrs-and-children attrs-and-children)
-       (make-element :tag (string-downcase (mkstr ',element-name))
-                     :attrs attrs :children children))))
+       (make-builtin-element :tag (string-downcase (mkstr ',element-name))
+                             :attrs attrs :children children))))
 
 (defmacro define-and-export-builtin-elements (&rest element-names)
   `(progn
@@ -75,7 +104,7 @@
     a abbr address area article aside audio b base bdi bdo blockquote
     body br button canvas caption cite code col colgroup data datalist
     dd del details dfn dialog div dl dt em embed fieldset figcaption
-    figure footer form h1 h2 h3 h4 h5 h6 head header hr html i iframe
+    figure footer form h1 h2 h3 h4 h5 h6 head header hr i iframe
     img input ins kbd label legend li link main |map| mark meta meter nav
     noscript object ol optgroup option output p param picture pre progress
     q rp rt ruby s samp script section select small source span strong
@@ -88,12 +117,6 @@
       (format stream "")))
 
 (defmethod print-object ((element element) stream)
-  (format stream "<~a~a>" (element-tag element) (element-attrs element))
-  (when (element-children element)
-    (format stream "~%~<~2I~@{~a~^~:@_~}~:>~%" (element-children element)))
-  (format stream "</~a>~%" (element-tag element)))
-
-(defmethod print-object ((element element) stream)
   (if (element-children element)
       (format stream (if (rest (element-children element))
                          "~@<<~a~a>~2I~:@_~<~@{~a~^~:@_~}~:>~0I~:@_</~a>~:>"
@@ -103,6 +126,10 @@
               (element-children element)
               (element-tag element))
       (format stream "<~a~a>" (element-tag element) (element-attrs element))))
+
+(defmethod print-object ((element builtin-element-with-prefix) stream)
+  (format stream "~a~%" prefix)
+  (call-next-method))
 
 (defmacro! define-element (name (&rest args) &body body)
   `(defun ,name (&rest ,g!attrs-and-children)
