@@ -5,7 +5,8 @@
                 :alist
                 :alistp
                 :hash-alist
-                :alist-plist)
+                :aget
+                :delete-from-alistf)
   (:import-from :let-over-lambda
                 :defmacro!
                 :mkstr
@@ -58,17 +59,23 @@
 
 (defstruct attrs alist)
 
-;;; TODO make it setf
-(defmethod set-attr ((attrs attrs) key value)
-  )
+(defmethod (setf attr) (value (attrs attrs) key)
+  (setf (aget (attrs-alist) key) value))
 
-(defmethod delete-attr ((attrs attrs) key value)
-  )
+(defmethod delete-attr ((attrs attrs) key)
+  (delete-from-alistf (attrs-alist attrs) key))
 
-(defmethod get-attr ((attrs attrs))
-  )
+(defmethod attr ((attrs attrs) key)
+  (aget (attrs-alist attrs) key))
 
-; (defmethod set-attr ((element element) key value))
+(defmethod (setf attr) (value (element element) key)
+  (setf (attr (element-attrs element) key) value))
+
+(defmethod delete-attr ((element element) key)
+  (delete-attr (element-attrs element) key))
+
+(defmethod attr ((element element) key)
+  (attr (element-attrs element)))
 
 (defun split-attrs-and-children (attrs-and-children)
   (cond
