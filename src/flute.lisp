@@ -58,6 +58,18 @@
 
 (defstruct attrs alist)
 
+;;; TODO make it setf
+(defmethod set-attr ((attrs attrs) key value)
+  )
+
+(defmethod delete-attr ((attrs attrs) key value)
+  )
+
+(defmethod get-attr ((attrs attrs))
+  )
+
+; (defmethod set-attr ((element element) key value))
+
 (defun split-attrs-and-children (attrs-and-children)
   (cond
     ((attrs-p (first attrs-and-children))
@@ -150,19 +162,27 @@
 
 (defmacro! define-element (name (&rest args) &body body)
   `(defun ,name (&rest ,g!attrs-and-children)
-     (multiple-value-bind (,g!attrs children)
+     (multiple-value-bind (,g!attrs ,g!children)
          (split-attrs-and-children ,g!attrs-and-children)
        (let ,(mapcar (lambda (arg)
                        (list arg `(cdr (assoc (make-keyword ',arg) (attrs-alist ,g!attrs)))))
                      args)
          (make-user-element :tag (string-downcase ',name) :attrs ,g!attrs
-                            :children children :expand-to (progn ,@body))))))
+                            :children ,g!children
+                            :expand-to
+                            (lambda (tag attrs children)
+                              (declare (ignorable tag attrs children))
+                              (progn ,@body)))))))
 
 (defvar *expand-user-element* t)
 
 (defmethod print-object ((element user-element) stream)
   (if *expand-user-element*
-      (print-object (user-element-expand-to element) stream)
+      (print-object (funcall (user-element-expand-to element)
+                             (element-tag element)
+                             (element-attrs element)
+                             (element-children element))
+                    stream)
       (call-next-method)))
 
 (defun tree-leaves%% (tree test result)
