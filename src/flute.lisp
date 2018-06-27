@@ -15,8 +15,18 @@
   (:export
    ;; all html5 elements, e.g. div, nav, media, export in code
    ;; except <time> and <map> conflicts with cl symbol, are defined and exported as |time|, |map|
-
-   ))
+   :define-element
+   :attrs
+   :attrs-alist
+   :make-attrs
+   :copy-attrs
+   :html
+   :element-tag
+   :element-attrs
+   :element-children
+   :user-element-expand-to
+   :*expand-user-element*
+   :h))
 (in-package :flute)
 
 (defclass element ()
@@ -42,6 +52,9 @@
 
 (defun make-builtin-element-with-prefix (&rest args &key tag attrs children prefix)
   (apply #'make-instance 'builtin-element-with-prefix args))
+
+(defun make-user-element (&rest args &key tag attrs children expand-to)
+  (apply #'make-instance 'user-element args))
 
 (defstruct attrs alist)
 
@@ -79,12 +92,15 @@
                   (cdr kv)))
           alist))
 
+(defvar *builtin-elements* (make-hash-table))
+
 (defun html (&rest attrs-and-children)
   (multiple-value-bind (attrs children)
       (split-attrs-and-children attrs-and-children)
     (make-builtin-element-with-prefix :tag "html" :attrs attrs
                                       :children children
                                       :prefix "<!DOCTYPE html>")))
+(setf (gethash :html *builtin-elements*) t)
 
 (defmacro define-builtin-element (element-name)
   `(defun ,element-name (&rest attrs-and-children)
@@ -97,6 +113,7 @@
   `(progn
      ,@(mapcan (lambda (e)
                  (list `(define-builtin-element ,e)
+                       `(setf (gethash (make-keyword ',e) *builtin-elements*) t)
                        `(export ',e)))
                element-names)))
 
@@ -128,7 +145,7 @@
       (format stream "<~a~a>" (element-tag element) (element-attrs element))))
 
 (defmethod print-object ((element builtin-element-with-prefix) stream)
-  (format stream "~a~%" prefix)
+  (format stream "~a~%" (element-prefix element))
   (call-next-method))
 
 (defmacro! define-element (name (&rest args) &body body)
@@ -138,4 +155,39 @@
        (let ,(mapcar (lambda (arg)
                        (list arg `(cdr (assoc (make-keyword ',arg) (attrs-alist ,g!attrs)))))
                      args)
-         ,@body))))
+         (make-user-element :tag (string-downcase ',name) :attrs ,g!attrs
+                            :children children :expand-to (progn ,@body))))))
+
+(defvar *expand-user-element* t)
+
+(defmethod print-object ((element user-element) stream)
+  (if *expand-user-element*
+      (print-object (user-element-expand-to element) stream)
+      (call-next-method)))
+
+(defun tree-leaves%% (tree test result)
+  (if tree
+    (if (listp tree)
+      (cons
+        (tree-leaves%% (car tree) test result)
+        (tree-leaves%% (cdr tree) test result))
+      (if (funcall test tree)
+        (funcall result tree)
+        tree))))
+
+(defmacro tree-leaves (tree test result)
+  `(tree-leaves%%
+     ,tree
+     (lambda (x)
+       (declare (ignorable x))
+       ,test)
+     (lambda (x)
+       (declare (ignorable x))
+       ,result)))
+
+(defmacro h (&body body)
+  `(progn
+     ,@(tree-leaves
+        body
+        (and (symbolp x) (not (keywordp x)) (gethash (make-keyword x) *builtin-elements*))
+        (find-symbol (string x) :flute))))
