@@ -5,7 +5,9 @@
   :components ((:module "src"
                 :serial t
                 :components
-                ((:file "flute"))))
+                ((:file "package")
+                 (:file "util")
+                 (:file "flute"))))
   :description "A beautiful, easilly composable html generation library"
   :long-description
   #.(uiop:read-file-string

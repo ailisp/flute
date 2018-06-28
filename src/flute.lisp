@@ -1,33 +1,3 @@
-(in-package :cl-user)
-(defpackage flute
-  (:use :cl)
-  (:import-from :assoc-utils
-                :alist
-                :alistp
-                :hash-alist
-                :aget
-                :delete-from-alistf)
-  (:import-from :let-over-lambda
-                :defmacro!
-                :mkstr
-                :flatten)
-  (:import-from :alexandria
-                :make-keyword)
-  (:export
-   ;; all html5 elements, e.g. div, nav, media, export in code
-   ;; except <time> and <map> conflicts with cl symbol, are defined and exported as |time|, |map|
-   :define-element
-   :attrs
-   :attrs-alist
-   :make-attrs
-   :copy-attrs
-   :html
-   :element-tag
-   :element-attrs
-   :element-children
-   :user-element-expand-to
-   :*expand-user-element*
-   :h))
 (in-package :flute)
 
 (defclass element ()
@@ -48,16 +18,36 @@
   ((expand-to :initarg :expand-to
               :accessor user-element-expand-to)))
 
-(defun make-builtin-element (&rest args &key tag attrs children)
-  (apply #'make-instance 'builtin-element args))
+(defun make-builtin-element (&key tag attrs children)
+  (make-instance 'builtin-element :tag tag :attrs attrs
+                 :children (escape-children children)))
 
-(defun make-builtin-element-with-prefix (&rest args &key tag attrs children prefix)
-  (apply #'make-instance 'builtin-element-with-prefix args))
+(defun make-builtin-element-with-prefix (&key tag attrs children prefix)
+  (make-instance 'builtin-element-with-prefix :tag tag :attrs attrs :prefix prefix
+                 :children (escape-children children)))
 
 (defun make-user-element (&rest args &key tag attrs children expand-to)
-  (apply #'make-instance 'user-element args))
+  (make-instance 'user-element :tag tag :attrs attrs :expand-to expand-to
+                 :children (escape-children children)))
 
-(defstruct attrs alist)
+(defstruct (attrs (:constructor %make-attrs))
+  alist)
+
+(defvar *escape-html* :utf8
+  "Specify the escape option when generate html, can be :UTF8, :ASCII, :ATTR or NIL.
+If :UTF8, escape only #\<, #\> and #\& in body, and \" in attribute keys. #\' will
+in attribute keys will not be escaped since flute will always use double quote for
+attribute keys.
+If :ASCII, besides what escaped in :UTF8, also escape all non-ascii characters.
+If :ATTR, only #\" in attribute values will be escaped.
+If NIL, nothing is escaped and programmer is responsible to escape elements properly.
+When given :ASCII and :ATTR, it's possible to insert html text as a children, e.g.
+(div :id \"container\" \"Some <b>text</b>\")")
+
+(defun make-attrs (&keys alist)
+  (if *escape-html*
+      (%make-attrs :alist (escape-attrs-alist alist))
+      (%make-attrs :alist alist)))
 
 (defmethod (setf attr) (value (attrs attrs) key)
   (setf (aget (attrs-alist) key) value))
@@ -100,16 +90,6 @@
         finally (return (values (make-attrs :alist attrs) nil))))
     (t
      (values (make-attrs :alist nil) (flatten attrs-and-children)))))
-
-(defun plist-alist (plist)
-  (loop for (k v) on plist by #'cddr
-     collect (cons k v)))
-
-(defun alist-plist* (alist)
-  (mapcan (lambda (kv)
-            (list (string-downcase (car kv))
-                  (cdr kv)))
-          alist))
 
 (defvar *builtin-elements* (make-hash-table))
 
@@ -191,26 +171,6 @@
                              (element-children element))
                     stream)
       (call-next-method)))
-
-(defun tree-leaves%% (tree test result)
-  (if tree
-    (if (listp tree)
-      (cons
-        (tree-leaves%% (car tree) test result)
-        (tree-leaves%% (cdr tree) test result))
-      (if (funcall test tree)
-        (funcall result tree)
-        tree))))
-
-(defmacro tree-leaves (tree test result)
-  `(tree-leaves%%
-     ,tree
-     (lambda (x)
-       (declare (ignorable x))
-       ,test)
-     (lambda (x)
-       (declare (ignorable x))
-       ,result)))
 
 (defmacro h (&body body)
   `(progn

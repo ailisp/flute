@@ -9,7 +9,10 @@
 
 # Usage
 
-[Examples of usage]
+## Minify for production
+```lisp
+(write root-element :pretty nil)
+```
 
 # License
 
