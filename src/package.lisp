@@ -28,4 +28,9 @@
    :element-children
    :user-element-expand-to
    :*expand-user-element*
-   :h))
+   :h
+   :*escape-html*
+   :escape-string
+   :utf8-html-escape-char-p
+   :ascii-html-escape-char-p
+   :attr-value-escape-char-p))

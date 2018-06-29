@@ -44,7 +44,7 @@ If NIL, nothing is escaped and programmer is responsible to escape elements prop
 When given :ASCII and :ATTR, it's possible to insert html text as a children, e.g.
 (div :id \"container\" \"Some <b>text</b>\")")
 
-(defun make-attrs (&keys alist)
+(defun make-attrs (&key alist)
   (if *escape-html*
       (%make-attrs :alist (escape-attrs-alist alist))
       (%make-attrs :alist alist)))
@@ -66,30 +66,6 @@ When given :ASCII and :ATTR, it's possible to insert html text as a children, e.
 
 (defmethod attr ((element element) key)
   (attr (element-attrs element)))
-
-(defun split-attrs-and-children (attrs-and-children)
-  (cond
-    ((attrs-p (first attrs-and-children))
-     (values (first attrs-and-children) (flatten (rest attrs-and-children))))
-    ((alistp (first attrs-and-children))
-     (values (make-attrs :alist (first attrs-and-children))
-             (flatten (rest attrs-and-children))))
-    ((listp (first attrs-and-children))
-     (values (make-attrs :alist (plist-alist (first attrs-and-children)))
-             (flatten (rest attrs-and-children))))
-    ((hash-table-p (first attrs-and-children))
-     (values (make-attrs :alist (hash-alist (first attrs-and-children)))
-             (flatten (rest attrs-and-children))))
-    ((keywordp (first attrs-and-children))
-     (loop for thing on attrs-and-children by #'cddr
-        for (k v) = thing
-        when (and (keywordp k) v)
-          collect (cons k v) into attrs
-        when (not (keywordp k))
-          return (values (make-attrs :alist attrs) (flatten thing))
-        finally (return (values (make-attrs :alist attrs) nil))))
-    (t
-     (values (make-attrs :alist nil) (flatten attrs-and-children)))))
 
 (defvar *builtin-elements* (make-hash-table))
 
