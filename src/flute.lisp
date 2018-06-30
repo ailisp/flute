@@ -133,15 +133,17 @@ When given :ASCII and :ATTR, it's possible to insert html text as a children, e.
   `(defun ,name (&rest ,g!attrs-and-children)
      (multiple-value-bind (,g!attrs ,g!children)
          (split-attrs-and-children ,g!attrs-and-children)
-       (let ,(mapcar (lambda (arg)
-                       (list arg `(cdr (assoc (make-keyword ',arg) (attrs-alist ,g!attrs)))))
-                     args)
-         (make-user-element :tag (string-downcase ',name) :attrs ,g!attrs
-                            :children ,g!children
-                            :expander
-                            (lambda (tag attrs children)
-                              (declare (ignorable tag attrs children))
-                              (progn ,@body)))))))
+       (let ((,g!element
+              (make-user-element :tag (string-downcase ',name) :attrs ,g!attrs
+                                 :children ,g!children)))
+         (setf (user-element-expander ,g!element)
+               (lambda (tag attrs children)
+                 (declare (ignorable tag attrs children))
+                 (let ,(mapcar (lambda (arg)
+                                 (list arg `(attr attrs (make-keyword ',arg))))
+                               args)
+                   (progn ,@body))))
+         ,g!element))))
 
 (defvar *expand-user-element* t)
 

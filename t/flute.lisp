@@ -234,7 +234,8 @@
     (is (string= "woo" (second (element-children dog4))))
 
     (setf (attr dog4 :size) 16)
-    (is (= 16 (attr dog4 :size)))
-    (is (string= "big-dog" (attr (user-element-expand-to dog4) :class)))))
+    (is (string= "big-dog" (attr (user-element-expand-to dog4) :class)))
+    (setf (element-children dog4) (list dog1 dog2 dog3))
+    (is (equal (list dog1 dog2 dog3 "dog") (element-children (user-element-expand-to dog4))))))
 
 (run-all-tests)
