@@ -23,6 +23,9 @@
    ;;; user define elements
    :define-element
    :*expand-user-element*
+   ;; for reference tag name and children elements in user element definition
+   :tag
+   :children
 
    ;;; attribute accessing utilility
    :attrs

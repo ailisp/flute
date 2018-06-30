@@ -50,10 +50,12 @@
     (t (format nil "&#~d;" (char-code char)))))
 
 (defun escape-string (string &optional (test #'utf8-html-escape-char-p))
-  (with-output-to-string (s)
-    (loop
-       for c across string
-       do (write (if (funcall test c) (escape-char c) c) :stream s :escape nil))))
+  (if (stringp string)
+      (with-output-to-string (s)
+        (loop
+           for c across string
+           do (write (if (funcall test c) (escape-char c) c) :stream s :escape nil)))
+      string))
 
 (defun escape-attrs-alist (alist)
   (mapcar (lambda (kv)

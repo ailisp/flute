@@ -15,8 +15,8 @@
            :accessor element-prefix)))
 
 (defclass user-element (element)
-  ((expand-to :initarg :expand-to
-              :accessor user-element-expand-to)))
+  ((expand-to :initarg :expander
+              :accessor user-element-expander)))
 
 (defun make-builtin-element (&key tag attrs children)
   (make-instance 'builtin-element :tag tag :attrs attrs
@@ -26,9 +26,15 @@
   (make-instance 'builtin-element-with-prefix :tag tag :attrs attrs :prefix prefix
                  :children (escape-children children)))
 
-(defun make-user-element (&rest args &key tag attrs children expand-to)
-  (make-instance 'user-element :tag tag :attrs attrs :expand-to expand-to
+(defun make-user-element (&rest args &key tag attrs children expander)
+  (make-instance 'user-element :tag tag :attrs attrs :expander expander
                  :children (escape-children children)))
+
+(defmethod user-element-expand-to ((element user-element))
+  (funcall (user-element-expander element)
+           (element-tag element)
+           (element-attrs element)
+           (element-children element)))
 
 (defstruct (attrs (:constructor %make-attrs))
   alist)
@@ -50,7 +56,7 @@ When given :ASCII and :ATTR, it's possible to insert html text as a children, e.
       (%make-attrs :alist alist)))
 
 (defmethod (setf attr) (value (attrs attrs) key)
-  (setf (aget (attrs-alist) key) value))
+  (setf (aget (attrs-alist attrs) key) value))
 
 (defmethod delete-attr ((attrs attrs) key)
   (delete-from-alistf (attrs-alist attrs) key))
@@ -65,7 +71,7 @@ When given :ASCII and :ATTR, it's possible to insert html text as a children, e.
   (delete-attr (element-attrs element) key))
 
 (defmethod attr ((element element) key)
-  (attr (element-attrs element)))
+  (attr (element-attrs element) key))
 
 (defvar *builtin-elements* (make-hash-table))
 
@@ -132,7 +138,7 @@ When given :ASCII and :ATTR, it's possible to insert html text as a children, e.
                      args)
          (make-user-element :tag (string-downcase ',name) :attrs ,g!attrs
                             :children ,g!children
-                            :expand-to
+                            :expander
                             (lambda (tag attrs children)
                               (declare (ignorable tag attrs children))
                               (progn ,@body)))))))
@@ -141,11 +147,7 @@ When given :ASCII and :ATTR, it's possible to insert html text as a children, e.
 
 (defmethod print-object ((element user-element) stream)
   (if *expand-user-element*
-      (print-object (funcall (user-element-expand-to element)
-                             (element-tag element)
-                             (element-attrs element)
-                             (element-children element))
-                    stream)
+      (print-object (user-element-expand-to element) stream)
       (call-next-method)))
 
 (defmacro h (&body body)
