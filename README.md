@@ -28,15 +28,18 @@ If you don't want to import all symbols, see [H Macro](#h-macro), which provide 
 (html
   (head
     (link :rel "...")
-    (script :src "...")
+    (script :src "..."))
   (body
     (div :id "a" :class "b"
       (p :style "color: red"
         "Some text")
-        "Some text in div"))))
+      "Some text in div"
+      (img :src "/img/dog.png")
+      (a '(:href "/cat")
+        (img '((:src . "/img/cat.png")))))))
 ```
 
-These `html`, `div`, etc. are just functions. Element attribute can be given inline as the above example, or as alist/plist/attrs object as the first argument in the case they're calculated programmatically.
+These `html`, `div`, etc. are just functions. Element attribute can be given inline as the above example, or as alist/plist/attrs object as the first argument, like the last `a` and `img` in the above example. In this case they can be variables that calculated programmatically.
 
 The remaining argument will be recognized as the children of this element. Each child can be:
 1. string;
@@ -120,14 +123,17 @@ Then just wrap `h` for all html generation part. In the same examples above, it 
 ``` lisp
 (in-package :flute-min)
 (h (html
-      (head
-        (link :rel "...")
-        (script :src "...")
-      (body
-        (div :id "a" :class "b"
-          (p :style "color: red"
-             "Some text")
-          "Some text in div")))))
+     (head
+       (link :rel "...")
+       (script :src "..."))
+     (body
+       (div :id "a" :class "b"
+         (p :style "color: red"
+           "Some text")
+         "Some text in div"
+         (img :src "/img/dog.png")
+         (a '(:href "/cat")
+           (img '((:src . "/img/cat.png"))))))))
 
 (define-element dog (id size)
   (if (and (realp size) (> size 10))
