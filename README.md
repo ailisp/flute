@@ -38,7 +38,11 @@ If you don't want to import all symbols, see [H Macro](#h-macro), which provide 
 
 These `html`, `div`, etc. are just functions. Element attribute can be given inline as the above example, or as alist/plist/attrs object as the first argument in the case they're calculated programmatically.
 
-The remaining argument will be recognized as the children of this element, they can be a piece of text, other element object, or list of text/element/list of this kind of list of any depth. Children will be flattened as if they're given inline.
+The remaining argument will be recognized as the children of this element. Each child can be:
+1. string;
+2. element, builtin or user defined;
+3. list of 1, 2 and 3. Can also be NIL.
+All children will be flattened as if they're given inline.
 
 ## Define new element
 ```lisp
@@ -51,35 +55,34 @@ The remaining argument will be recognized as the children of this element, they 
               children
               "dog"))))
 ```
-`DOG` will be defined as a function that takes `:ID` and `:SIZE` keyword arguments. `DOG` returns an user-defined element object. Inside it, `CHILDREN` will be replaced with the children elements you provided when creating this `DOG`:
+`dog` will be defined as a function that takes `:id` and `:size` keyword arguments. `dog` returns an user-defined element object. Inside it, `children` will be replaced with the children elements you provided when creating this `dog`:
 ```
-CL-USER> (defparameter *dog1* (dog :id "dog1" :size 20))
+FLUTE-USER> (defparameter *dog1* (dog :id "dog1" :size 20))
 *DOG1*
-CL-USER> *dog1*
+FLUTE-USER> *dog1*
 <div id="dog1" class="big-dog">dog</div>
-CL-USER> (dog :id "dog2" "I am a dog" *)
+FLUTE-USER> (dog :id "dog2" "I am a dog" *)
 <div id="dog2" class="small-dog">
   I am a dog
   <div id="dog1" class="big-dog">dog</div>
   dog
 </div>
-CL-USER>
 ```
 
 All elements, both builtin and user defined ones are objects, although they're printed as html snippet in REPL. Their attribute can be accessed by `(element-attrs element)`. Their children can be accessed by `(element-children elements)` and tag name by `(element-tag element)`. You can modify an exising element's attrs and children. If you modify a user defined element, the body you defined in it's `define-element` also re-executed to take effect of the the attrs and children change:
 ```
 FLUTE-USER> *dog1*
 <div id="dog1" class="big-dog">dog</div>
-CL-USER> (setf (attr *dog1* :size) 10
-               (attr *dog1* :id) "dooooog1" ; attr is a helper method to set (flute:element-attrs *dog1*)
-               (element-children *dog1*) (list "i'm small now"))
+FLUTE-USER> (setf (attr *dog1* :size) 10
+                  ;; attr is a helper method to set (flute:element-attrs *dog1*)
+                  (attr *dog1* :id) "dooooog1"
+                  (element-children *dog1*) (list "i'm small now"))
 ("i'm small now")
 FLUTE-USER> *dog1*
 <div id="dooooog1" class="small-dog">
   i'm small now
   dog
 </div>
-FLUTE-USER>
 ```
 
 By default user element is printed as what it expand to. If you have a lot of user defined element nested deeply, you probably want to have a look at the high level:
@@ -102,7 +105,7 @@ To generate HTML string that has nice indent as that in REPL:
 ```lisp
 (element-string element)
 ```
-To generate that and write to file, just create a stream, then `(write element :stream stream)` or `(write element :stream stream :pretty nil)`
+To generate that and write to file, just create a stream, then `(write element :stream stream)` for human or `(write element :stream stream :pretty nil)` for production.
 
 ## H macro
 If you don't want to import all the symbols, you can use the `h` macro:
