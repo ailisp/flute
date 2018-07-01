@@ -1,6 +1,6 @@
 (defsystem flute
-  :author "Bo Yao <icerove@gmail.com"
-  :license "BSD"
+  :author "Bo Yao <icerove@gmail.com>"
+  :license "MIT"
   :version "0.1"
   :components ((:module "src"
                 :serial t
