@@ -8,7 +8,7 @@
                 ((:file "package")
                  (:file "util")
                  (:file "flute"))))
-  :description "A beautiful, easilly composable html generation library"
+  :description "A beautiful, easilly composable HTML5 generation library"
   :long-description
   #.(uiop:read-file-string
      (uiop:subpathname *load-pathname* "README.md"))
