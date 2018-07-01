@@ -1,6 +1,6 @@
-# flute
+# Flute
 
-flute is a beautiful, easily composable HTML5 generation library in Common Lisp. It's
+Flute is a beautiful, easily composable HTML5 generation library in Common Lisp. It's
 
 - Simple: the most simplistic syntax, for builtin and customized elements;
 - Easy to debug: pretty print generated html snippet in REPL;
@@ -16,49 +16,42 @@ flute is a beautiful, easily composable HTML5 generation library in Common Lisp.
 (ql:quickload :flute-test)
 ```
 
-Then in the package you want to use flute:
+Then define a new package specifically for HTML generation, in its definition:
 ```lisp
-(:import-from :flute
-              :h
-              :define-element
-              :element-string
-              :elem-str
-              ;; more if you use them often
-              )
+(defpackage flute-user
+  (:use :cl :flute))
 ```
+If you don't want to import all symbols, see <h-macro>, which provide a similar interface as a tranditional Lisp HTML generation library.
 
 ## Using html elements
 ```
-(h (html
-      (head
-        (link :rel "...")
-        (script :src "...")
-      (body)
-        (div :id "a" :class "b"
-          (p :style "color: red"
-             "Some text")
-          "Some text in div"))))
+(html
+  (head
+    (link :rel "...")
+    (script :src "...")
+  (body
+    (div :id "a" :class "b"
+      (p :style "color: red"
+        "Some text")
+        "Some text in div"))))
 ```
 
-Elements are just functions, if you use them a lot, you can directly import them and use them without
-the `h` macro. You can also `(:use :flute)` to omit `h` if your designs are using the whole package specific for html generation.
+These `html`, `div`, etc. are just functions. Element attribute can be given inline as the above example, or as alist/plist/attrs object as the first argument in the case they're calculated programmatically.
 
-Element attribute can be given inline as the above example, or as alist/plist/attrs object as the first argument in the case they're calculated programmatically.
-
-The remaining argument will be recognized as the children of this element, they can be a piece of text or any other element object, or list of text/element/list of any depth, like `(div (list button1 (div :id "2" "some text" (list (form ...)))))`. They will be flattened as if you call `(div button1 (div :id "2" "some text" (form ...)))`. This is for easilly plugin element variables as children.
+The remaining argument will be recognized as the children of this element, they can be a piece of text, other element object, or list of text/element/list of this kind of list with any depth, like `(div (list button1 (div :id "2" "some text" (list (form ...)))))`. They will be flattened as if you call `(div button1 (div :id "2" "some text" (form ...)))`. This is for easilly plug-in element variables as children.
 
 ## Define new element
 ```lisp
 (define-element dog (id size)
   (if (and (realp size) (> size 10))
-      (h (div :id id :class "big-dog"
+      (div :id id :class "big-dog"
               flute:children
-              "dog"))
-      (h (div :id id :class "small-dog"
+              "dog")
+      ((div :id id :class "small-dog"
               flute:children
               "dog"))))
 ```
-`DOG` will be defined as a function with additional features, which returns an user-defined element object. Inside, `FLUTE:CHILDREN` will be replaced with the children elements you provided when creating this `DOG`:
+`DOG` will be defined as a function that takes `:ID` and `:SIZE` keyword arguments. `DOG` returns an user-defined element object. Inside it, `CHILDREN` will be replaced with the children elements you provided when creating this `DOG`:
 ```
 CL-USER> (defparameter *dog1* (dog :id "dog1" :size 20))
 *DOG1*
@@ -73,31 +66,31 @@ CL-USER> (dog :id "dog2" "I am a dog" *)
 CL-USER>
 ```
 
-All elements, both builtin and user defined ones are objects, although they're printed as html snippet in REPL. Their attribute can be accessed by `(flute:element-attrs element)`. Their children can be accessed by `(flute:element-children elements)` and tag name by `(flute:element-tag element)`. You can modify an exising element's attrs and children. If you modify a user defined element, the body you defined in it's `define-element` also re-executed to take effect of the the attrs and children change:
+All elements, both builtin and user defined ones are objects, although they're printed as html snippet in REPL. Their attribute can be accessed by `(element-attrs element)`. Their children can be accessed by `(element-children elements)` and tag name by `(element-tag element)`. You can modify an exising element's attrs and children. If you modify a user defined element, the body you defined in it's `define-element` also re-executed to take effect of the the attrs and children change:
 ```
-CL-USER> *dog1*
+FLUTE-USER> *dog1*
 <div id="dog1" class="big-dog">dog</div>
-CL-USER> (setf (flute:attr *dog1* :size) 10
-               (flute:attr *dog1* :id) "dooooog1" ; attr is a helper method to setf (flute:element-attrs *dog1*)
-               (flute:element-children *dog1*) (list "i'm small now"))
+CL-USER> (setf (attr *dog1* :size) 10
+               (attr *dog1* :id) "dooooog1" ; attr is a helper method to set (flute:element-attrs *dog1*)
+               (element-children *dog1*) (list "i'm small now"))
 ("i'm small now")
-CL-USER> *dog1*
+FLUTE-USER> *dog1*
 <div id="dooooog1" class="small-dog">
   i'm small now
   dog
 </div>
-CL-USER>
+FLUTE-USER>
 ```
 
 By default the element's print as what it expand to. If you have a lot of user defined element nested deeply, you probably want to have a look at the high level:
 ```
-CL-USER> (let ((flute:*expand-user-element* nil))
-           (print *dog1*)
-           (values))
+FLUTE-USER> (let ((*expand-user-element* nil))
+              (print *dog1*)
+              (values))
 
 <dog id="dooooog1" size=10>i'm small now</dog>
 ; No value
-CL-USER>
+FLUTE-USER>
 ```
 
 ## Generate HTML
@@ -111,7 +104,42 @@ To generate HTML string that has nice indent as that in REPL:
 ```
 To generate that and write to file, just create a stream, then `(write element :stream stream)` or `(write element :stream stream :pretty nil)`
 
-That's all you need to know to define elements and generate html. Please reference the <API Reference> Section for detailed API.
+## H macro
+If you don't want to import all the symbols, you can use the `h` macro:
+```lisp
+(defpackage flute-min
+  (:use :cl)
+  (:import-from :flute
+                :h
+                :define-element))
+```
+Then just wrap `h` for all html generation part. In the same examples above, it becomes:
+``` lisp
+(in-package :flute-min)
+(h (html
+      (head
+        (link :rel "...")
+        (script :src "...")
+      (body
+        (div :id "a" :class "b"
+          (p :style "color: red"
+             "Some text")
+          "Some text in div")))))
+
+(define-element dog (id size)
+  (if (and (realp size) (> size 10))
+      (h (div :id id :class "big-dog"
+              flute:children
+              "dog"))
+      (h (div :id id :class "small-dog"
+              flute:children
+              "dog"))))
+
+(defparameter *dog2* (dog :id "dog2" :size 20 "some children"))
+```
+
+
+That's all you need to know to define elements and generate html. Please reference the <api-reference> Section for detailed API.
 
 # Motivation
 Currently there're a few HTML generation library in Common Lisp, like [CL-WHO](https://edicl.github.io/cl-who/), [CL-MARKUP](https://github.com/arielnetworks/cl-markup) and [Spinneret](https://github.com/ruricolist/spinneret). They both have good features for generating standard HTML, but not very good at user element (components) that currently widely used in frontend: you need to define all of them as macros and to define components on top of these components, you'll have to make these components more complex macros to composite them. [Spinneret](https://github.com/ruricolist/spinneret) has a `deftag` feature, but `deftag` is still expand to a `defmacro`. I'd also want to modify the customer component attribute after create it and incorporate it with it's own logic (like the dog size example above), this logic should be any lisp code. This requires provide all element as object, not plain HTML text generation.
@@ -244,7 +272,7 @@ The `HTML` element is a little special, it's with `<!DOCTYPE html>` prefix to ma
 ;; Get what this USER-ELEMENT-TO. Returns the root ELEMENT after it expands.
 ```
 
-## H macro
+## The H macro
 ```lisp
 ;; Macro H &BODY CHILDREN
 ;;
