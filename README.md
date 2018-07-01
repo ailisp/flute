@@ -21,7 +21,7 @@ Then define a new package specifically for HTML generation, in its definition:
 (defpackage flute-user
   (:use :cl :flute))
 ```
-If you don't want to import all symbols, see <h-macro>, which provide a similar interface as a tranditional Lisp HTML generation library.
+If you don't want to import all symbols, see [H Macro](#h-macro), which provide a similar interface as a tranditional Lisp HTML generation library.
 
 ## Using html elements
 ```
@@ -38,17 +38,17 @@ If you don't want to import all symbols, see <h-macro>, which provide a similar 
 
 These `html`, `div`, etc. are just functions. Element attribute can be given inline as the above example, or as alist/plist/attrs object as the first argument in the case they're calculated programmatically.
 
-The remaining argument will be recognized as the children of this element, they can be a piece of text, other element object, or list of text/element/list of this kind of list with any depth, like `(div (list button1 (div :id "2" "some text" (list (form ...)))))`. They will be flattened as if you call `(div button1 (div :id "2" "some text" (form ...)))`. This is for easilly plug-in element variables as children.
+The remaining argument will be recognized as the children of this element, they can be a piece of text, other element object, or list of text/element/list of this kind of list of any depth. Children will be flattened as if they're given inline.
 
 ## Define new element
 ```lisp
 (define-element dog (id size)
   (if (and (realp size) (> size 10))
       (div :id id :class "big-dog"
-              flute:children
+              children
               "dog")
       ((div :id id :class "small-dog"
-              flute:children
+              children
               "dog"))))
 ```
 `DOG` will be defined as a function that takes `:ID` and `:SIZE` keyword arguments. `DOG` returns an user-defined element object. Inside it, `CHILDREN` will be replaced with the children elements you provided when creating this `DOG`:
@@ -82,7 +82,7 @@ FLUTE-USER> *dog1*
 FLUTE-USER>
 ```
 
-By default the element's print as what it expand to. If you have a lot of user defined element nested deeply, you probably want to have a look at the high level:
+By default user element is printed as what it expand to. If you have a lot of user defined element nested deeply, you probably want to have a look at the high level:
 ```
 FLUTE-USER> (let ((*expand-user-element* nil))
               (print *dog1*)
@@ -139,11 +139,12 @@ Then just wrap `h` for all html generation part. In the same examples above, it 
 ```
 
 
-That's all you need to know to define elements and generate html. Please reference the <api-reference> Section for detailed API.
+That's all you need to know to define elements and generate html. Please reference the [API Reference](#api-reference) Section for detailed API.
 
 # Motivation
-Currently there're a few HTML generation library in Common Lisp, like [CL-WHO](https://edicl.github.io/cl-who/), [CL-MARKUP](https://github.com/arielnetworks/cl-markup) and [Spinneret](https://github.com/ruricolist/spinneret). They both have good features for generating standard HTML, but not very good at user element (components) that currently widely used in frontend: you need to define all of them as macros and to define components on top of these components, you'll have to make these components more complex macros to composite them. [Spinneret](https://github.com/ruricolist/spinneret) has a `deftag` feature, but `deftag` is still expand to a `defmacro`. I'd also want to modify the customer component attribute after create it and incorporate it with it's own logic (like the dog size example above), this logic should be any lisp code. This requires provide all element as object, not plain HTML text generation.
-With this approach, all elements have a same name function to create it, and returns element that you can modify later. These objects are virtual doms and it's very pleasant to write html code and frontend component by just composite element objects as arguments in element creation function calls. Flute's composite feature inspired by [Hiccup](https://github.com/weavejester/hiccup) and [Reagent](https://github.com/reagent-project/reagent) but more powerful -- in flute, user defined elements is real object with attributes and it's own generation logic.
+Currently there're a few HTML generation library in Common Lisp, like [CL-WHO](https://edicl.github.io/cl-who/), [CL-MARKUP](https://github.com/arielnetworks/cl-markup) and [Spinneret](https://github.com/ruricolist/spinneret). They both have good features for generating standard HTML, but not very good at user element (components) that currently widely used in frontend: you need to define all of them as macros and to define components on top of these components, you'll have to make these components more complex macros to composite them. [Spinneret](https://github.com/ruricolist/spinneret) has a `deftag` feature, but `deftag` is still expand to a `defmacro`.
+
+I'd also want to modify the customer component attribute after create it and incorporate it with it's own logic (like the dog size example above), this logic should be any lisp code. This requires provide all element as object, not plain HTML text generation. With this approach, all elements have a same name function to create it, and returns element that you can modify later. These objects are virtual doms and it's very pleasant to write html code and frontend component by just composite element objects as arguments in element creation function calls. Flute's composite feature inspired by [Hiccup](https://github.com/weavejester/hiccup) and [Reagent](https://github.com/reagent-project/reagent) but more powerful -- in flute, user defined elements is real object with attributes and it's own generation logic.
 
 # Limitation
 With the function name approach, it's not possible to support `div.id#class1#class2` style function names. I'm working on some tweak of reader macros in [illusion](https://github.com/ailisp/illusion) library to detect this and convert it to `(div :id "id" :class "class1 class2" ...)` call
