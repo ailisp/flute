@@ -49,4 +49,8 @@
    :escape-string
    :utf8-html-escape-char-p
    :ascii-html-escape-char-p
-   :attr-value-escape-char-p))
+   :attr-value-escape-char-p
+
+   ;;; helper for generate html string
+   :element-string
+   :elem-str))

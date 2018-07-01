@@ -158,3 +158,11 @@ When given :ASCII and :ATTR, it's possible to insert html text as a children, e.
         body
         (and (symbolp x) (not (keywordp x)) (gethash (make-keyword x) *builtin-elements*))
         (find-symbol (string x) :flute))))
+
+(defmethod element-string ((element element))
+  (with-output-to-string (s)
+    (write element :stream s)))
+
+(defmethod elem-str ((element element))
+  (with-output-to-string (s)
+    (write element :stream s :pretty nil)))

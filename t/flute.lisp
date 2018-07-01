@@ -7,6 +7,7 @@
 (def-suite escape)
 (def-suite attr-access)
 (def-suite user-element)
+(def-suite h-macro)
 
 (in-suite builtin-element)
 
@@ -110,6 +111,42 @@
     (is (equal (list "some children text" div1) (element-children div3)))
     (is (equal '((:id . "dog") (:class . "happy")) (attrs-alist (element-attrs div4))))
     (is (equal (list div1 div2 div3) (element-children div4)))))
+
+(test builtin-element-html-generation
+  (let* ((html (html))
+         (div0 (div))
+         (div1 (div "some text"))
+         (div2 (div :id "2"))
+         (div3 (div :id "3" div1 div2 "some other text"))
+         (div4 (div :id "4" div3 (div :id "5" (a :href "a.html" "a")))))
+    (is (string= "<!DOCTYPE html>
+<html>" (element-string html)))
+    (is (string= "<div>" (element-string div0)))
+    (is (string= "<div>some text</div>" (element-string div1)))
+    (is (string= "<div id=\"2\">" (element-string div2)))
+    (is (string= "<div id=\"3\">
+  <div>some text</div>
+  <div id=\"2\">
+  some other text
+</div>" (element-string div3)))
+    (is (string= "<div id=\"4\">
+  <div id=\"3\">
+    <div>some text</div>
+    <div id=\"2\">
+    some other text
+  </div>
+  <div id=\"5\"><a href=\"a.html\">a</a></div>
+</div>" (element-string div4)))
+
+    (is (string= "<!DOCTYPE html>
+<html>" (elem-str html)))
+    (is (string= "<div>" (element-string div0)))
+    (is (string= "<div>some text</div>" (elem-str div1)))
+    (is (string= "<div id=\"2\">" (elem-str div2)))
+    (is (string= "<div id=\"3\"><div>some text</div><div id=\"2\">some other text</div>"
+                 (elem-str div3)))
+    (is (string= "<div id=\"4\"><div id=\"3\"><div>some text</div><div id=\"2\">some other text</div><div id=\"5\"><a href=\"a.html\">a</a></div></div>"
+                 (elem-str div4)))))
 
 (in-suite escape)
 
@@ -237,5 +274,103 @@
     (is (string= "big-dog" (attr (user-element-expand-to dog4) :class)))
     (setf (element-children dog4) (list dog1 dog2 dog3))
     (is (equal (list dog1 dog2 dog3 "dog") (element-children (user-element-expand-to dog4))))))
+
+(test user-element-html-generation
+  (LET* ((dog1 (dog))
+         (dog2 (dog :size 15))
+         (dog3 (dog (img :src "dog.png")))
+         (dog4 (dog :id "dog" :size 10 (img :src "dog4.png") "woo"))
+         (home (div :id "home"
+                    (cat)
+                    ;; dog4 below is ignored because cat not accepting children
+                    (cat dog4)
+                    (dog :id "doge" (cat)))))
+    (is (string= "<div class=\"small-dog\">dog</div>" (element-string dog1)))
+    (is (string= "<div class=\"big-dog\">dog</div>" (element-string dog2)))
+    (is (string= "<div class=\"small-dog\">
+  <img src=\"dog.png\">
+  dog
+</div>" (element-string dog3)))
+    (is (string= "<div id=\"dog\" class=\"small-dog\">
+  <img src=\"dog4.png\">
+  woo
+  dog
+</div>" (element-string dog4)))
+    (is (string= "<div id=\"home\">
+  <div id=\"cat\">
+    <img src=\"cat.png\">
+    I'm a cat
+  </div>
+  <div id=\"cat\">
+    <img src=\"cat.png\">
+    I'm a cat
+  </div>
+  <div id=\"doge\" class=\"small-dog\">
+    <div id=\"cat\">
+      <img src=\"cat.png\">
+      I'm a cat
+    </div>
+    dog
+  </div>
+</div>" (element-string home)))
+
+    (let ((*expand-user-element* nil))
+      (is (string= "<dog>" (element-string dog1)))
+      (is (string= "<dog size=15>" (element-string dog2)))
+      (is (string= "<dog><img src=\"dog.png\"></dog>" (element-string dog3)))
+      (is (string= "<dog id=\"dog\" size=10>
+  <img src=\"dog4.png\">
+  woo
+</dog>" (element-string dog4)))
+      (is (string= "<div id=\"home\">
+  <cat>
+  <cat>
+    <dog id=\"dog\" size=10>
+      <img src=\"dog4.png\">
+      woo
+    </dog>
+  </cat>
+  <dog id=\"doge\"><cat></dog>
+</div>" (element-string home))))))
+
+(in-suite h-macro)
+
+(in-package :cl-user)
+(defpackage flute.h-macro.test
+  (:use :cl :fiveam)
+  (:import-from :flute
+                :h
+                :element-string
+                :define-element))
+(in-package :flute.h-macro.test)
+
+(define-element duck (id color)
+  (h (div :id (format nil "duck~a" id)
+          :style (format nil "color:~a" color)
+          "ga ga ga"
+          flute:children)))
+
+(test h-macro
+  (let ((some-var 3))
+    (is (string=
+         "<div id=\"a\">
+  <img href=\"a.png\">
+  <div id=\"b\">foo</div>
+  some text
+</div>" (element-string
+          (h (div :id "a"
+                  (img :href "a.png")
+                  (div (if (> some-var 0)
+                           '(:id "b")
+                           '(:id "c"))
+                       "foo")
+                  "some text")))))
+    (is (string= "<div id=\"duck5\" style=\"color:blue\">
+  ga ga ga
+  <img href=\"duck.png\">
+</div>"
+         (element-string
+          (h (duck :id 5 :color "blue"
+                   (img :href "duck.png"))))))))
 
 (run-all-tests)
