@@ -14,21 +14,22 @@
   (:import-from :alexandria
                 :make-keyword)
   (:export
-
+   ;;; builtin HTML elements
    ;;; all html5 elements, e.g. div, nav, media, export in code except
    ;;; <time> and <map> conflicts with cl symbol, are defined and
    ;;; exported as |time|, |map|
    :html
 
-   ;;; user define elements
+   ;;; user defined elements
    :define-element
    :*expand-user-element*
-   ;; for reference tag name and children elements in user element definition
+   ;; for reference tag name, attributes and children elements in user
+   ;; element definition
    :tag
    :children
+   :attrs
 
    ;;; attribute accessing utilility
-   :attrs
    :attrs-alist
    :make-attrs
    :copy-attrs

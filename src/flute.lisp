@@ -156,8 +156,8 @@ When given :ASCII and :ATTR, it's possible to insert html text as a children, e.
   `(progn
      ,@(tree-leaves
         body
-        (and (symbolp x) (not (keywordp x)) (gethash (make-keyword x) *builtin-elements*))
-        (find-symbol (string x) :flute))))
+        (and (symbolp x) (not (keywordp x)) (gethash (collect-name-as-keyword x) *builtin-elements*))
+        (find-symbol (string (collect-name-as-keyword x)) :flute))))
 
 (defmethod element-string ((element element))
   (with-output-to-string (s)

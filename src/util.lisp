@@ -96,3 +96,28 @@
         finally (return (values (make-attrs :alist attrs) nil))))
     (t
      (values (make-attrs :alist nil) (flatten attrs-and-children)))))
+
+(defun collect-until-dot-or-sharp (string)
+  (let ((pos (position-if (lambda (c) (or (char= c #\.) (char= c #\#))) string)))
+    (if pos
+        (cons (subseq string 0 pos) (subseq string pos))
+        (cons string ""))))
+
+(defun collect-name-as-keyword (symbol)
+  (make-keyword (car (collect-until-dot-or-sharp (string symbol)))))
+
+(defun collect-id-and-class (symbol)
+  (let (name id class next-is)
+    (do ((current-and-remains (collect-until-dot-or-sharp (string-downcase (string symbol)))
+                              (collect-until-dot-or-sharp (cdr current-and-remains))))
+        ((string= "" (car current-and-remains))
+         (values name id (format nil "~{~a~^ ~}" (nreverse class))))
+      (case next-is
+        (:id (setf id (car current-and-remains)))
+        (:class (push (car current-and-remains) class))
+        (otherwise (setf name (car current-and-remains))))
+      (unless (string= "" (cdr current-and-remains))
+        (setf next-is (ecase (aref (cdr current-and-remains) 0)
+                        (#\. :id)
+                        (#\# :class))
+              (cdr current-and-remains) (subseq (cdr current-and-remains) 1))))))
