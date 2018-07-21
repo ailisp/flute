@@ -54,9 +54,9 @@ All children will be flattened as if they're given inline.
       (div :id id :class "big-dog"
               children
               "dog")
-      ((div :id id :class "small-dog"
+      (div :id id :class "small-dog"
               children
-              "dog"))))
+              "dog")))
 ```
 `dog` will be defined as a function that takes `:id` and `:size` keyword arguments. `dog` returns an user-defined element object. Inside it, `children` will be replaced with the children elements you provided when creating this `dog`:
 ```
