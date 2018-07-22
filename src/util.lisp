@@ -86,6 +86,8 @@
     ((hash-table-p (first attrs-and-children))
      (values (make-attrs :alist (hash-alist (first attrs-and-children)))
              (flatten (rest attrs-and-children))))
+    ((vectorp (first attrs-and-children))
+     (append-inline-attrs attrs-and-children))
     ((keywordp (first attrs-and-children))
      (loop for thing on attrs-and-children by #'cddr
         for (k v) = thing
@@ -96,6 +98,20 @@
         finally (return (values (make-attrs :alist attrs) nil))))
     (t
      (values (make-attrs :alist nil) (flatten attrs-and-children)))))
+
+(defun append-inline-attrs (attrs-and-children)
+  (let* ((inline-attrs (coerce (first attrs-and-children 'list)))
+         (id (getf inline-attrs :id))
+         (class (getf inline-attrs :class)))
+    (multiple-value-bind (attrs children)
+        (split-attrs-and-children (rest attrs-and-children))
+      (when (and id (not (attr attrs :id)))
+        (setf (attr attrs :id) id))
+      (when class
+        (if-let (other-class (attr attrs :class))
+          (setf (attr attrs :class) (format nil "~a ~a" class other-class))
+          (setf (attr attrs :class) class)))
+      (values attrs children))))
 
 (defun collect-until-dot-or-sharp (string)
   (let ((pos (position-if (lambda (c) (or (char= c #\.) (char= c #\#))) string)))
