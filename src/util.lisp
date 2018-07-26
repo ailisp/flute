@@ -86,7 +86,8 @@
     ((hash-table-p (first attrs-and-children))
      (values (make-attrs :alist (hash-alist (first attrs-and-children)))
              (flatten (rest attrs-and-children))))
-    ((vectorp (first attrs-and-children))
+    ((and (vectorp (first attrs-and-children))
+          (keywordp (aref (first attrs-and-children) 0)))
      (append-inline-attrs attrs-and-children))
     ((keywordp (first attrs-and-children))
      (loop for thing on attrs-and-children by #'cddr
@@ -100,7 +101,7 @@
      (values (make-attrs :alist nil) (flatten attrs-and-children)))))
 
 (defun append-inline-attrs (attrs-and-children)
-  (let* ((inline-attrs (coerce (first attrs-and-children 'list)))
+  (let* ((inline-attrs (coerce (first attrs-and-children) 'list))
          (id (getf inline-attrs :id))
          (class (getf inline-attrs :class)))
     (multiple-value-bind (attrs children)
