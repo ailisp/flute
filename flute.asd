@@ -7,6 +7,7 @@
                 :components
                 ((:file "package")
                  (:file "util")
+                 (:file "element-belongs-to")
                  (:file "flute"))))
   :description "A beautiful, easilly composable HTML5 generation library"
   :long-description

@@ -73,15 +73,12 @@ When given :ASCII and :ATTR, it's possible to insert html text as a children, e.
 (defmethod attr ((element element) key)
   (attr (element-attrs element) key))
 
-(defvar *builtin-elements* (make-hash-table))
-
 (defun html (&rest attrs-and-children)
   (multiple-value-bind (attrs children)
       (split-attrs-and-children attrs-and-children)
     (make-builtin-element-with-prefix :tag "html" :attrs attrs
                                       :children children
                                       :prefix "<!DOCTYPE html>")))
-(setf (gethash :html *builtin-elements*) t)
 
 (defmacro define-builtin-element (element-name)
   `(defun ,element-name (&rest attrs-and-children)
@@ -90,24 +87,14 @@ When given :ASCII and :ATTR, it's possible to insert html text as a children, e.
        (make-builtin-element :tag (string-downcase (mkstr ',element-name))
                              :attrs attrs :children children))))
 
-(defmacro define-and-export-builtin-elements (&rest element-names)
+(defmacro define-and-export-builtin-elements ()
   `(progn
      ,@(mapcan (lambda (e)
                  (list `(define-builtin-element ,e)
-                       `(setf (gethash (make-keyword ',e) *builtin-elements*) t)
                        `(export ',e)))
-               element-names)))
+               '#.*builtin-elements-list*)))
 
-(define-and-export-builtin-elements
-    a abbr address area article aside audio b base bdi bdo blockquote
-    body br button canvas caption cite code col colgroup data datalist
-    dd del details dfn dialog div dl dt em embed fieldset figcaption
-    figure footer form h1 h2 h3 h4 h5 h6 head header hr i iframe
-    img input ins kbd label legend li link main |map| mark meta meter nav
-    noscript object ol optgroup option output p param picture pre progress
-    q rp rt ruby s samp script section select small source span strong
-    style sub summary sup svg table tbody td template textarea tfoot th
-    thead |time| title tr track u ul var video wbr)
+(define-and-export-builtin-elements)
 
 (defmethod print-object ((attrs attrs) stream)
   (if (attrs-alist attrs)

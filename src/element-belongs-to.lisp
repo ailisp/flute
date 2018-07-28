@@ -21,8 +21,8 @@
     (controls	audio video)
     (coords	area)
     (data	object)
-    (data-*	*)
-    (datetime	del ins time)
+    (data-*	*) ; This is not actual attr, but still good for eldoc hint purpose
+    (datetime	del ins |time|)
     (default	track)
     (defer	script)
     (dir	*)
@@ -57,19 +57,19 @@
     (min	input meter)
     (multiple	input select)
     (muted	video audio)
-    (name	button fieldset form iframe input map meta object output param select textarea)
+    (name	button fieldset form iframe input |map| meta object output param select textarea)
     (novalidate	form)
     (onabort	audio embed img object video)
     (onafterprint	body)
     (onbeforeprint	body)
     (onbeforeunload	body)
-    (onblur	All visible elements.)
+    (onblur	+)
     (oncanplay	audio embed object video)
     (oncanplaythrough	audio video)
-    (onchange	All visible elements.)
-    (onclick	All visible elements.)
-    (oncontextmenu	All visible elements.)
-    (oncopy	All visible elements.)
+    (onchange	+)
+    (onclick	+)
+    (oncontextmenu	+)
+    (oncopy	+)
     (oncuechange	track)
     (oncut	+)
     (ondblclick	+)
@@ -121,7 +121,7 @@
     (onselect	+)
     (onstalled	audio video)
     (onstorage	body)
-    h(onsubmit	form)
+    (onsubmit	form)
     (onsuspend	audio video)
     (ontimeupdate	audio video)
     (ontoggle	details)
@@ -165,3 +165,36 @@
     (value	button input li option meter progress param)
     (width	canvas embed iframe img input object video)
     (wrap	textarea)))
+
+(defparameter *builtin-elements-list*
+  '(a abbr address area article aside audio b base bdi bdo blockquote
+    body br button canvas caption cite code col colgroup data datalist
+    dd del details dfn dialog div dl dt em embed fieldset figcaption
+    figure footer form h1 h2 h3 h4 h5 h6 head header hr i iframe
+    img input ins kbd label legend li link main |map| mark meta meter nav
+    noscript object ol optgroup option output p param picture pre progress
+    q rp rt ruby s samp script section select small source span strong
+    style sub summary sup svg table tbody td template textarea tfoot th
+    thead |time| title tr track u ul var video wbr))
+
+(defparameter *+-except-elements* '(base bdo br head html iframe meta param script style title))
+
+(defvar *element-attrs* (make-hash-table))
+
+(defvar *element-attrs-calculated* (make-hash-table))
+
+(defvar *builtin-elements* (make-hash-table))
+
+(dolist (element *builtin-elements-list*)
+  (setf (gethash (make-keyword element) *builtin-elements*) t))
+
+(dolist (attr *attribute-belongs-to*)
+  (dolist (elem (cdr *attribute-belongs-to*))
+    (push (car attr) (gethash elem *element-attrs*))))
+
+(loop for element being each hash-key of *builtin-elements*
+   do (setf (gethash element *element-attrs-calculated*)
+            (sort (append (gethash element *element-attrs*) (gethash '* *element-attrs*)
+                          (unless (find element *+-except-elements*)
+                            (gethash '+ *element-attrs*)))
+                  #'string<)))
