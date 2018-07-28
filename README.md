@@ -153,11 +153,24 @@ From version 0.2 (available in Aug 2018 Quicklisp), flute supports css style id 
 (h (div#a.b :class "c" :onclick "fun()"))
 ```
 
+## Inline CSS and JavaScript
+With help of [cl-css](https://github.com/Inaimathi/cl-css) (available in Quicklisp), You can write inline CSS for the `style` attribute, in a similar syntax like flute:
+```lisp
+(div :style (inline-css '(:margin 5px :padding 0px)))
+```
+`cl-css:inline-css` is a function taking plist and returns the result css string, so it can be safely used inside or outside of `H` macro and with variable arguments.
+
+With help of [Parenscript](https://github.com/vsedach/Parenscript) (available in Quicklisp), You can write inline JavaScript for `onclick`, etc. attribute:
+```lisp
+(button :onclick (ps-inline (func)))
+```
+
 That's all you need to know to define elements and generate html. Please reference the [API Reference](#api-reference) Section for detailed API.
 
 # Change Logs
 ## 2018/07/28 Version 0.2-dev
 - Support `element#id.class1.class2` in `H` macro for builtin elements;
+- Suggestions on inline CSS and JavaScript in lispy way;
 - Jon Atack fix an error example in README.
 ## 2018/07/11 Version 0.1
 - Current features, APIs and Tests.
