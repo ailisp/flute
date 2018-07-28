@@ -152,12 +152,37 @@ When given :ASCII and :ATTR, it's possible to insert html text as a children, e.
       (print-object (user-element-expand-to element) stream)
       (call-next-method)))
 
+(defun html-element-p (x)
+  (and (symbolp x) (not (keywordp x)) (gethash (collect-name-as-keyword x) *builtin-elements*)))
+
 (defmacro h (&body body)
   `(progn
      ,@(tree-leaves
         body
-        (and (symbolp x) (not (keywordp x)) (gethash (collect-name-as-keyword x) *builtin-elements*))
-        (find-symbol (string (collect-name-as-keyword x)) :flute))))
+        (html-element-p x)
+        (multiple-value-bind (name id class) (collect-id-and-class x)
+          (if (or id class)
+              (make-!expanded :list (list (find-symbol (string-upcase name) :flute)
+                                          (coerce (append (when id (list :id id))
+                                                          (when class (list :class class)))
+                                                  'vector)))
+              (find-symbol (string-upcase name) :flute))))))
+
+;;; Experimental
+;; (when (find :illusion *features*)
+;;   (illusion:set-paren-reader
+;;    :flute
+;;    #'html-element-p
+;;    (lambda (stream indicator)
+;;      (multiple-value-bind (name id class) (collect-id-and-class indicator)
+;;        (if (or id class)
+;;            (list* (find-symbol (string-upcase name) :flute)
+;;                   (coerce (append (when id (list :id))
+;;                                  (when class (list :class class)))
+;;                           'vector)
+;;                   (illusion:cl-read-list stream))
+;;            (cons (find-symbol (string-upcase name) :flute)
+;;                  (illusion:cl-read-list stream)))))))
 
 (defmethod element-string ((element element))
   (with-output-to-string (s)

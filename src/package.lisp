@@ -12,7 +12,8 @@
                 :mkstr
                 :flatten)
   (:import-from :alexandria
-                :make-keyword)
+                :make-keyword
+                :if-let)
   (:export
    ;;; builtin HTML elements
    ;;; all html5 elements, e.g. div, nav, media, export in code except

@@ -10,15 +10,19 @@
                   (cdr kv)))
           alist))
 
+(defstruct !expanded list)
+
 (defun tree-leaves%% (tree test result)
   (if tree
-    (if (listp tree)
-      (cons
-        (tree-leaves%% (car tree) test result)
-        (tree-leaves%% (cdr tree) test result))
-      (if (funcall test tree)
-        (funcall result tree)
-        tree))))
+      (if (listp tree)
+          (let ((car-result (tree-leaves%% (car tree) test result))
+                (cdr-result (tree-leaves%% (cdr tree) test result)))
+            (if (!expanded-p car-result)
+             (append (!expanded-list car-result) cdr-result)
+             (cons car-result cdr-result)))
+          (if (funcall test tree)
+              (funcall result tree)
+              tree))))
 
 (defmacro tree-leaves (tree test result)
   `(tree-leaves%%
@@ -128,13 +132,13 @@
     (do ((current-and-remains (collect-until-dot-or-sharp (string-downcase (string symbol)))
                               (collect-until-dot-or-sharp (cdr current-and-remains))))
         ((string= "" (car current-and-remains))
-         (values name id (format nil "~{~a~^ ~}" (nreverse class))))
+         (values name id (when class (format nil "~{~a~^ ~}" (nreverse class)))))
       (case next-is
         (:id (setf id (car current-and-remains)))
         (:class (push (car current-and-remains) class))
         (otherwise (setf name (car current-and-remains))))
       (unless (string= "" (cdr current-and-remains))
         (setf next-is (ecase (aref (cdr current-and-remains) 0)
-                        (#\. :id)
-                        (#\# :class))
+                        (#\# :id)
+                        (#\. :class))
               (cdr current-and-remains) (subseq (cdr current-and-remains) 1))))))
