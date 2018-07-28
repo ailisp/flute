@@ -10,15 +10,19 @@
                   (cdr kv)))
           alist))
 
+(defstruct !expanded list)
+
 (defun tree-leaves%% (tree test result)
   (if tree
-    (if (listp tree)
-      (cons
-        (tree-leaves%% (car tree) test result)
-        (tree-leaves%% (cdr tree) test result))
-      (if (funcall test tree)
-        (funcall result tree)
-        tree))))
+      (if (listp tree)
+          (let ((car-result (tree-leaves%% (car tree) test result))
+                (cdr-result (tree-leaves%% (cdr tree) test result)))
+            (if (!expanded-p car-result)
+             (append (!expanded-list car-result) cdr-result)
+             (cons car-result cdr-result)))
+          (if (funcall test tree)
+              (funcall result tree)
+              tree))))
 
 (defmacro tree-leaves (tree test result)
   `(tree-leaves%%
@@ -86,6 +90,9 @@
     ((hash-table-p (first attrs-and-children))
      (values (make-attrs :alist (hash-alist (first attrs-and-children)))
              (flatten (rest attrs-and-children))))
+    ((and (vectorp (first attrs-and-children))
+          (keywordp (aref (first attrs-and-children) 0)))
+     (append-inline-attrs attrs-and-children))
     ((keywordp (first attrs-and-children))
      (loop for thing on attrs-and-children by #'cddr
         for (k v) = thing
@@ -96,6 +103,20 @@
         finally (return (values (make-attrs :alist attrs) nil))))
     (t
      (values (make-attrs :alist nil) (flatten attrs-and-children)))))
+
+(defun append-inline-attrs (attrs-and-children)
+  (let* ((inline-attrs (coerce (first attrs-and-children) 'list))
+         (id (getf inline-attrs :id))
+         (class (getf inline-attrs :class)))
+    (multiple-value-bind (attrs children)
+        (split-attrs-and-children (rest attrs-and-children))
+      (when (and id (not (attr attrs :id)))
+        (setf (attr attrs :id) id))
+      (when class
+        (if-let (other-class (attr attrs :class))
+          (setf (attr attrs :class) (format nil "~a ~a" class other-class))
+          (setf (attr attrs :class) class)))
+      (values attrs children))))
 
 (defun collect-until-dot-or-sharp (string)
   (let ((pos (position-if (lambda (c) (or (char= c #\.) (char= c #\#))) string)))
@@ -111,13 +132,13 @@
     (do ((current-and-remains (collect-until-dot-or-sharp (string-downcase (string symbol)))
                               (collect-until-dot-or-sharp (cdr current-and-remains))))
         ((string= "" (car current-and-remains))
-         (values name id (format nil "~{~a~^ ~}" (nreverse class))))
+         (values name id (when class (format nil "~{~a~^ ~}" (nreverse class)))))
       (case next-is
         (:id (setf id (car current-and-remains)))
         (:class (push (car current-and-remains) class))
         (otherwise (setf name (car current-and-remains))))
       (unless (string= "" (cdr current-and-remains))
         (setf next-is (ecase (aref (cdr current-and-remains) 0)
-                        (#\. :id)
-                        (#\# :class))
+                        (#\# :id)
+                        (#\. :class))
               (cdr current-and-remains) (subseq (cdr current-and-remains) 1))))))

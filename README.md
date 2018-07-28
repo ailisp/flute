@@ -146,9 +146,21 @@ Then just wrap `h` for all html generation part. In the same examples above, it 
 
 (defparameter *dog2* (dog :id "dog2" :size 20 "some children"))
 ```
-
+From version 0.2 (available in Aug 2018 Quicklisp), flute supports css style id and class attribute for builtin elements. For example `div#id-name.class1.class2`, So you can also write:
+```lisp
+(h (div#a.b "..."))
+;; Provide additional class and attributes
+(h (div#a.b :class "c" :onclick "fun()"))
+```
 
 That's all you need to know to define elements and generate html. Please reference the [API Reference](#api-reference) Section for detailed API.
+
+# Change Logs
+## 2018/07/28 Version 0.2-dev
+- Support `element#id.class1.class2` in `H` macro for builtin elements;
+- Jon Atack fix an error example in README.
+## 2018/07/11 Version 0.1
+- Current features, APIs and Tests.
 
 # Motivation
 Currently there're a few HTML generation library in Common Lisp, like [CL-WHO](https://edicl.github.io/cl-who/), [CL-MARKUP](https://github.com/arielnetworks/cl-markup) and [Spinneret](https://github.com/ruricolist/spinneret). They both have good features for generating standard HTML, but not very good at user element (components) that currently widely used in frontend: you need to define all of them as macros and to define components on top of these components, you'll have to make these components more complex macros to composite them. [Spinneret](https://github.com/ruricolist/spinneret) has a `deftag` feature, but `deftag` is still expand to a `defmacro`.
