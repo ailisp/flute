@@ -35,13 +35,19 @@
        ,result)))
 
 (defun utf8-html-escape-char-p (char)
+  "=> boolean
+Return `t` if `CHAR` is a character that need to be escaped when HTML is UTF-8 encoded."
   (find char "<>&"))
 
 (defun ascii-html-escape-char-p (char)
+  "=> boolean
+Return `t` if `CHAR` is a character that need to be escaped when HTML is ASCII encoded."
   (or (utf8-html-escape-char-p char)
       (> (char-code char) 127)))
 
 (defun attr-value-escape-char-p (char)
+  "=> boolean
+Return `t` if `CHAR` is a character that need to be escaped when as an attribute value."
   (eql char #\"))
 
 (defun escape-char (char)
@@ -54,6 +60,10 @@
     (t (format nil "&#~d;" (char-code char)))))
 
 (defun escape-string (string &optional (test #'utf8-html-escape-char-p))
+  "=> string or original object
+Escape the `STRING` if it's a string and escaping all charaters c that satisfied
+`(funcall TEST c)`. Return the escaped string. If `STRING` isn't a string, simply
+return it."
   (if (stringp string)
       (with-output-to-string (s)
         (loop
