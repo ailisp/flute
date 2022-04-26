@@ -21,7 +21,7 @@ Then define a new package specifically for HTML generation, in its definition:
 (defpackage flute-user
   (:use :cl :flute))
 ```
-If you don't want to import all symbols, see [H Macro](#h-macro), which provide a similar interface as a tranditional Lisp HTML generation library.
+If you don't want to import all symbols, see [H Macro](#h-macro), which provide a similar interface as a traditional Lisp HTML generation library.
 
 ## Using html elements
 ```
